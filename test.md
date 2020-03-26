@@ -20,7 +20,13 @@ the part of configuration following,
       afi-safi-name = "ipv4-unicast"
   [[neighbors.afi-safis]]
     [neighbors.afi-safis.config]
+      afi-safi-name = "ipv6-unicast"
+  [[neighbors.afi-safis]]
+    [neighbors.afi-safis.config]
       afi-safi-name = "ipv4-flowspec"
+  [[neighbors.afi-safis]]
+    [neighbors.afi-safis.config]
+      afi-safi-name = "ipv6-flowspec"
 ```
 
 *** clj-lib.snmp.core-test
