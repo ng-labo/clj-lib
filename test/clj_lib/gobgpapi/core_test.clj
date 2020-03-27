@@ -57,11 +57,17 @@
         (is (= 1 (count lp)))
         (is (some? (get (first lp) :prefix)))
         (is (some? (get (first lp) :paths)))
-        (is (some? (= 0 (get (get (get (first lp) :paths):path):Origin) )))
-        (is (some? (= 100 (get (get (get (first lp) :paths):path):MED) )))
-        (is (some? (= 200 (get (get (get (first lp) :paths):path):LocalPeref) )))
-        (is (some? (= "1.2.1.2" (get (get (get (first lp) :paths):path):NextHop) ))))
-        ;(is (some? (= (65432:666) (get (get (get (first lp) :paths):path):Communities) )))
+        (let [prefix (get (first lp) :prefix)
+              paths (get (first lp) :paths)]
+          (is (= "1.2.3.0/24" prefix))
+
+          (let [path (get (first paths) :path)]
+            (is (= 0 (get path :Origin)))
+            (is (= 100 (get path :MED)))
+            (is (= 200 (get path :LocalPref)))
+            (is (= "1.2.1.2" (get path :NextHop)))
+            (is (= "65432:666" (first (get path :Communities))))
+      )))
       (is (some? (clj-lib.gobgpapi.unicast/delete-path unicast-ipv4-args gcli)))
       (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 4 :unicast)]
         (is (= 0 (count lp))))
