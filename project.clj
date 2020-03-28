@@ -10,6 +10,7 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/tools.logging "1.0.0"]
                  [org.clojure/data.json "1.0.0"]
+                 [org.clojure/core.async "0.7.559"]
                  [clj-time "0.15.2"] 
                  [ch.qos.logback/logback-classic "1.2.3"]
                  [org.slf4j/slf4j-api "1.7.30"]
