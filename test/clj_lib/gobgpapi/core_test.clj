@@ -7,11 +7,25 @@
             [clj-lib.gobgpapi.unicast :refer :all]
             [clj-lib.gobgpapi.flowspec :refer :all]))
 
-;(deftest a-test
-;  (testing "FIXME, I fail."
-;    (is (= 0 1))))
+(def unicast-ipv4-args
+  { :origin     :igp 
+    :ipver      4
+    :nexthop    "1.2.1.2"
+    :prefixes   {:prefix "1.2.3.0" :prefixlen 24}
+    :communities [ "65432:666" ]
+    :localpref  200
+    :med 100
+  })
+
+(def unicast-ipv6-args
+  { :origin     0
+    :ipver      6
+    :nexthop    "2001:db8:1:2::1"
+    :prefixes   {:prefix "2001:db8:1:2::" :prefixlen 64}
+  })
+
 (def flowspec-ipv4-args
-  { :origin     :igp
+  { :origin     :egp
     :rate       0
     :ipver      4
     :prefixes   [ {:type 1 :prefix "1.2.3.4" :prefixlen 32}
@@ -28,23 +42,6 @@
                   {:type 2 :prefix "2001:db8:cafe::2" :prefixlen 128} ]
     :conditions [ {:type 3 :conditions [{:op 1 :value 17}]}
                   {:type 4 :conditions [{:op 1 :value 1900}{:op 1 :value 11211}]} ]
-  })
-
-(def unicast-ipv4-args
-  { :origin     0
-    :ipver      4
-    :nexthop    "1.2.1.2"
-    :prefixes   {:prefix "1.2.3.0" :prefixlen 24}
-    :communities [ "65432:666" ]
-    :localpref  200
-    :med 100
-  })
-
-(def unicast-ipv6-args
-  { :origin     0
-    :ipver      6
-    :nexthop    "2001:db8:1:2::1"
-    :prefixes   {:prefix "2001:db8:1:2::" :prefixlen 64}
   })
 
 (deftest call-unicast-path
@@ -86,10 +83,21 @@
       (is (some? gcli))
       (is (some? (clj-lib.gobgpapi.flowspec/add-flowspec flowspec-ipv4-args gcli)))
       (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 4 :flowspec)]
-        (is (= 1 (count lp))))
+        (is (= 1 (count lp)))
+        (is (some? (get (first lp) :prefix)))
+        (is (some? (get (first lp) :paths)))
+        (let [prefix (get (first lp) :prefix)
+              paths (get (first lp) :paths)]
+          (is (.contains prefix "1.2.3.4/32")) ; format is complex
+
+          (let [path (get (first paths) :path)]
+            (is (= 1 (get path :Origin))))
+      ))
+
       (is (some? (clj-lib.gobgpapi.flowspec/delete-flowspec flowspec-ipv4-args gcli)))
       (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 4 :flowspec)]
         (is (= 0 (count lp))))
+
       (is (some? (clj-lib.gobgpapi.flowspec/add-flowspec flowspec-ipv6-args gcli)))
       (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 6 :flowspec)]
         (is (= 1 (count lp))))
