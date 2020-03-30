@@ -1,4 +1,4 @@
-*** clj-lib.gobgpapi.core-test
+### clj-lib.gobgpapi.core-test
 
 A gobgpd process is run before testing.
 
@@ -29,7 +29,7 @@ the part of configuration following,
       afi-safi-name = "ipv6-flowspec"
 ```
 
-*** clj-lib.snmp.core-test
+### clj-lib.snmp.core-test
 
 A snmpd process is run before testing.
 
