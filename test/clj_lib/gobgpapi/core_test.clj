@@ -50,7 +50,7 @@
       (is (some? gcli))
 
       (is (some? (clj-lib.gobgpapi.unicast/add-path unicast-ipv4-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 4 :unicast)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 4 :unicast)]
         (is (= 1 (count lp)))
         (is (some? (get (first lp) :prefix)))
         (is (some? (get (first lp) :paths)))
@@ -66,14 +66,14 @@
             (is (= "65432:666" (first (get path :Communities))))
       )))
       (is (some? (clj-lib.gobgpapi.unicast/delete-path unicast-ipv4-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 4 :unicast)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 4 :unicast)]
         (is (= 0 (count lp))))
 
       (is (some? (clj-lib.gobgpapi.unicast/add-path unicast-ipv6-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 6 :unicast)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 6 :unicast)]
         (is (= 1 (count lp))))
       (is (some? (clj-lib.gobgpapi.unicast/delete-path unicast-ipv6-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 6 :unicast)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 6 :unicast)]
         (is (= 0 (count lp))))
 )))
 
@@ -82,7 +82,7 @@
     (let [gcli (clj-lib.gobgpapi.core/gobgp-client "localhost:50051")]
       (is (some? gcli))
       (is (some? (clj-lib.gobgpapi.flowspec/add-flowspec flowspec-ipv4-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 4 :flowspec)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 4 :flowspec)]
         (is (= 1 (count lp)))
         (is (some? (get (first lp) :prefix)))
         (is (some? (get (first lp) :paths)))
@@ -95,13 +95,13 @@
       ))
 
       (is (some? (clj-lib.gobgpapi.flowspec/delete-flowspec flowspec-ipv4-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 4 :flowspec)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 4 :flowspec)]
         (is (= 0 (count lp))))
 
       (is (some? (clj-lib.gobgpapi.flowspec/add-flowspec flowspec-ipv6-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 6 :flowspec)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 6 :flowspec)]
         (is (= 1 (count lp))))
       (is (some? (clj-lib.gobgpapi.flowspec/delete-flowspec flowspec-ipv6-args gcli)))
-      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli 6 :flowspec)]
+      (let [lp (clj-lib.gobgpapi.listpath/list-path gcli :global 6 :flowspec)]
         (is (= 0 (count lp))))
 )))

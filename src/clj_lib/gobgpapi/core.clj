@@ -2,6 +2,7 @@
   ;(:require [clj-lib.gobgpapi.flowspec :as gobgpapi-flowspec])
   (:import [io.grpc ManagedChannelBuilder])
   (:import [gobgpapi GobgpApiGrpc])
+  (:import [gobgpapi Gobgp$TableType])
 )
 
 (defn -main []
@@ -41,6 +42,13 @@
               (+ (bit-shift-left (Integer/parseInt (nth n 0)) 16)
                  (Integer/parseInt (nth n 1))))
        :else v)) args))
+
+(defn table-type [k]
+  (cond (= k :global) Gobgp$TableType/GLOBAL
+        (= k :local) Gobgp$TableType/LOCAL
+        (= k :adj-in) Gobgp$TableType/ADJ_IN
+        (= k :adj-out) Gobgp$TableType/ADJ_OUT
+   :else Gobgp$TableType/GLOBAL))
 
 (defn gobgp-client
   "obtains GobgpApiBlockingStub instance.

@@ -5,7 +5,7 @@
   (:import [gobgpapi Gobgp$GetBgpRequest
                      Gobgp$ListPathRequest
                      Gobgp$Path
-                     Gobgp$Family Gobgp$Family$Afi Gobgp$Family$Safi Gobgp$TableType ])
+                     Gobgp$Family Gobgp$Family$Afi Gobgp$Family$Safi])
   (:import [gobgpapi Attribute$FlowSpecIPPrefix
                      Attribute$FlowSpecComponent
                      Attribute$FlowSpecComponentItem
@@ -103,19 +103,19 @@
 ) paths))
 
 (defn- build-request
-  [ver safi]
+  [table-type ver safi & lookup-prefix]
   (.build
     (doto (Gobgp$ListPathRequest/newBuilder)
           (.setFamily (build-family ver safi))
-          (.setTableType Gobgp$TableType/GLOBAL))))
+          (.setTableType (gobgpapi/table-type table-type)))))
   
 (defn list-path
-  [blocking-stub ver safi]
+  [blocking-stub table-type ver safi & lookup-prefix]
   ; {:pre ...}
-  (let [list-path (.listPath blocking-stub (build-request ver safi))]
+  (let [list-path (.listPath blocking-stub (build-request table-type ver safi lookup-prefix))]
     (loop [counter 0
            ret     []]
-      (if (and (.hasNext list-path) (< counter 1000))
+      (if (and (.hasNext list-path) (< counter 100))
           (recur (inc counter)
                  (let [dest (.getDestination (.next list-path))]
                    (let [prefix (.getPrefix dest)
