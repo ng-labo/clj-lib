@@ -10,7 +10,8 @@
   (:import [java.io IOException])
 )
 
-(defn- build-target-v2c [host community]
+(defn- build-target-v2c
+  [host community]
   (doto (CommunityTarget.)
     (.setCommunity (OctetString. community))
     (.setAddress (GenericAddress/parse (format "udp:%s/%d" host 161)))
@@ -19,7 +20,8 @@
     (.setRetries 0)
 ))
 
-(defn- build-pdu [oids]
+(defn- build-pdu
+  [oids]
   (doto (PDU.)
     (.setType PDU/GETBULK)
     (.addAll (into-array (map #(VariableBinding. (OID. (str %))) oids)))
@@ -40,12 +42,14 @@
     (finally (. snmp close))
 )))
 
-(defn- p2 [& more]
+(defn- p2
+  [& more]
   (.write *out* (str (clojure.string/join " " more) "\n"))
   (.flush *out*))
 
-(defn- decodeEvent [tree-event host oid]
+(defn- decodeEvent
   "return { oid(dropped prefix) value, ... }, when isError return nil"
+  [tree-event host oid]
   (cond (. tree-event isError) nil
         :else
         (loop [var-bind (. tree-event getVariableBindings) ret {}]
@@ -54,14 +58,16 @@
                       (assoc ret (str (. (first var-bind) getOid)) (str (. (first var-bind) getVariable))))
                ret))))
 
-(defn- decodeEvents [events host oid]
+(defn- decodeEvents
+  [events host oid]
   (loop [ev events ret {}]                                                                                                  
     (if (first ev)
         (recur (next ev)
                (conj ret (decodeEvent (first ev) host oid)))
                ret)))
 
-(defn snmpbulkwalk-v2c [host community oid]
+(defn snmpbulkwalk-v2c
+  [host community oid]
   (let [transport (DefaultUdpTransportMapping.)]
     (try
       (. transport listen)
@@ -75,18 +81,21 @@
     (catch Exception e { oid nil }) 
 )))
 
-(defn get-deref-list [thread-results]
+(defn- get-deref-list
+  [thread-results]
   (map deref (vals thread-results))
 )
 
-(defn get-deref-map [thread-results]
+(defn- get-deref-map
+  [thread-results]
   (let [ keys-result (keys thread-results)
          derefed-result (map deref (vals thread-results))]
     (into {} (map vector keys-result derefed-result))
 ))
 
 ;;; (run-snmp-get '("192.168.0.100", "192.168.0.102") "public" '("1.3.6.1.2.1.1.3.0" "1.3.6.1.2.1.1.4.0" ))
-(defn run-snmp-get [host-list community oid-list]
+(defn run-snmp-get
+  [host-list community oid-list]
   (loop [ threads {} host host-list ]
     (if (first host)
         (recur (assoc threads
@@ -97,7 +106,8 @@
 )))
 
 ;;; (run-snmp-bulkwalk '("192.168.0.100" "192.168.0.102") "public" "1.3.6.1.2.1.31.1.1.1.1")
-(defn run-snmp-bulkwalk [ host-list community oid ]
+(defn run-snmp-bulkwalk
+  [ host-list community oid ]
   (loop [ threads {} host host-list ]
     (if (first host)
         (recur (assoc threads
