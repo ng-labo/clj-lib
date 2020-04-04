@@ -4,6 +4,7 @@
   (:import [com.google.protobuf Any])
   (:import [gobgpapi Gobgp$GetBgpRequest
                      Gobgp$ListPathRequest
+                     Gobgp$TableLookupOption Gobgp$TableLookupPrefix
                      Gobgp$Path
                      Gobgp$Family Gobgp$Family$Afi Gobgp$Family$Safi])
   (:import [gobgpapi Attribute$FlowSpecIPPrefix
@@ -12,13 +13,17 @@
                      Attribute$FlowSpecNLRI
                      Attribute$TrafficRateExtended
                      Attribute$CommunitiesAttribute
+                     Attribute$LargeCommunitiesAttribute
                      Attribute$ExtendedCommunitiesAttribute
                      Attribute$MpReachNLRIAttribute
                      Attribute$OriginAttribute
                      Attribute$NextHopAttribute
                      Attribute$MultiExitDiscAttribute
                      Attribute$LocalPrefAttribute
-                     Attribute$IPAddressPrefix ])
+                     Attribute$IPAddressPrefix
+                     Attribute$LabeledIPAddressPrefix
+                     Attribute$AsSegment
+                     Attribute$AsPathAttribute ])
 )
 
 (defn- build-family 
@@ -32,18 +37,38 @@
           (.setSafi (cond (= safi :flowspec) Gobgp$Family$Safi/SAFI_FLOW_SPEC_UNICAST
                           (= safi :unicast)  Gobgp$Family$Safi/SAFI_UNICAST)))))
 
+(defn- tr-aspath
+  [attr] ; yet unpacked
+  (map (fn [as-seg]
+         (.getNumbersList as-seg))
+    (.getSegmentsList (.unpack attr Attribute$AsPathAttribute))))
+
 (defn- tr-ipaddressprefix
   [attr] ; yet unpacked
   (let [ipaddr (.unpack attr Attribute$IPAddressPrefix)]
     { :prefix (.getPrefix ipaddr) :prefixlen (.getPrefixLen ipaddr) }))
 
 (defn- dissect-Nlris
+  " not yet implement
+    ; EVPNEthernetAutoDiscoveryRoute
+    ; EVPNMACIPAdvertisementRoute
+    ; EVPNInclusiveMulticastEthernetTagRoute
+    ; EVPNEthernetSegmentRoute
+    ; EVPNIPPrefixRoute
+    ; EVPNIPMSIRoute
+    ; LabeledVPNIPAddressPrefix
+    ; RouteTargetMembershipNLRI
+    ; FlowSpecNLRI
+    ; VPNFlowSpecNLRI
+    ; OpaqueNLRI
+    ; LsAddrPrefix
+  "
   [nlri-list]
-  (reduce into (map (fn [nlri]
-                      (assert (= (type nlri) com.google.protobuf.Any))
-                      (cond (.is nlri Attribute$IPAddressPrefix)
-                            {:IPAddresPrefix (tr-ipaddressprefix nlri) }
-                     )) nlri-list)))
+  (reduce into
+          (map (fn [nlri]
+                  (cond (.is nlri Attribute$IPAddressPrefix)
+                        {:IPAddresPrefix (tr-ipaddressprefix nlri) }
+               )) nlri-list)))
 
 (defn- dissect-MpReachNLRI
   [attr]
@@ -64,6 +89,15 @@
          )))
        (.getCommunitiesList (.unpack attr Attribute$CommunitiesAttribute))))
 
+(defn- tr-largecommunities
+  [attr]
+  (map (fn [lc]
+         (apply str (concat
+           (str (Integer/toUnsignedLong (.getGlobalAdmin lc))) ":"
+           (str (Integer/toUnsignedLong (.getLocalData1 lc))) ":"
+           (str (Integer/toUnsignedLong (.getLocalData2 lc))))))
+        (.getCommunitiesList (.unpack attr Attribute$LargeCommunitiesAttribute))))
+
 (defn- tr-extendedcommunities
   [attr]
   (map (fn [c]
@@ -81,20 +115,34 @@
          { :path (reduce into (map
                    (fn [a]
                      (assert (= (type a) com.google.protobuf.Any))
-                     (cond (.is a Attribute$MpReachNLRIAttribute)
-                           {:MpReachNLRI (dissect-MpReachNLRI (.unpack a Attribute$MpReachNLRIAttribute))}
+                     (cond 
                            (.is a Attribute$OriginAttribute)
                            {:Origin (.getOrigin (.unpack a Attribute$OriginAttribute))}
+                           (.is a Attribute$AsPathAttribute)
+                           {:AsPath (tr-aspath a)}
                            (.is a Attribute$NextHopAttribute)
                            {:NextHop (.getNextHop (.unpack a Attribute$NextHopAttribute))}
                            (.is a Attribute$MultiExitDiscAttribute)
                            {:MED (.getMed (.unpack a Attribute$MultiExitDiscAttribute))}
                            (.is a Attribute$LocalPrefAttribute)
                            {:LocalPref (.getLocalPref (.unpack a Attribute$LocalPrefAttribute))}
+                           ; AtomicAggregateAttribute
+                           ; AggregatorAttribute
                            (.is a Attribute$CommunitiesAttribute)
                            {:Communities (tr-communities a)}
+                           ; OriginatorIdAttribute
+                           ; ClusterListAttribute
+                           (.is a Attribute$IPAddressPrefix)
+                           {:Prefix (.unpack a Attribute$IPAddressPrefix)} ; TODO
+                           (.is a Attribute$LabeledIPAddressPrefix)
+                           {:Prefix (.unpack a Attribute$LabeledIPAddressPrefix)} ;TODO
+                           (.is a Attribute$MpReachNLRIAttribute)
+                           {:MpReachNLRI (dissect-MpReachNLRI (.unpack a Attribute$MpReachNLRIAttribute))}
+                           (.is a Attribute$LargeCommunitiesAttribute)
+                           {:LargeCommunities (tr-largecommunities a)}
                            (.is a Attribute$ExtendedCommunitiesAttribute)
-                           {:ExtendedCommunities (tr-extendedcommunities a)}))
+                           {:ExtendedCommunities (tr-extendedcommunities a)}
+                      :else {:not-yet-implement a}))
                  (.getPattrsList p)))
            :best (.getBest p)
            :age (.getSeconds (.getAge p))
@@ -102,22 +150,33 @@
          }
 ) paths))
 
-(defn- build-request
-  [table-type ver safi & lookup-prefix]
+(defn- build-tablelookupprefix
+  [prefix]
   (.build
-    (doto (Gobgp$ListPathRequest/newBuilder)
+    (doto (Gobgp$TableLookupPrefix/newBuilder)
+          (.setPrefix prefix)
+          (.setLookupOption Gobgp$TableLookupOption/LOOKUP_SHORTER)
+          )))
+
+(defn- build-request
+  [table-type ver safi prefix]
+  (let [builder (Gobgp$ListPathRequest/newBuilder)]
+    (doto builder
           (.setFamily (build-family ver safi))
-          (.setTableType (gobgpapi/table-type table-type)))))
+          (.setTableType (gobgpapi/table-type table-type)))
+    (reduce #(.addPrefixes %1 (build-tablelookupprefix %2)) builder prefix)
+    (.build builder)))
   
 (defn list-path
   [blocking-stub table-type ver safi & lookup-prefix]
-  ; {:pre ...}
+  {:pre [ (not (not-any? #(= ver %) '(4 6)))
+          (not (not-any? #(= safi %) '(:unicast :flowspec)))
+          (not (not-any? #(= table-type %) '(:global :local :adj-in :adj-out)))
+          (some? lookup-prefix)]}
   (let [list-path (.listPath blocking-stub (build-request table-type ver safi lookup-prefix))]
-    (loop [counter 0
-           ret     []]
-      (if (and (.hasNext list-path) (< counter 100))
-          (recur (inc counter)
-                 (let [dest (.getDestination (.next list-path))]
+    (loop [ ret     []]
+      (if (.hasNext list-path)
+          (recur (let [dest (.getDestination (.next list-path))]
                    (let [prefix (.getPrefix dest)
                          paths  (.getPathsList dest)]
                      (conj ret {:prefix prefix :paths (dissect-paths paths)}))))

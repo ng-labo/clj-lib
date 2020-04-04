@@ -4,9 +4,9 @@
 
 ## functions
 
-[(clj-lib.snmp.core) snmpget-v2c](#snmpget-v2c)
-[(clj-lib.snmp.core) run-snmp-get](#run-snmp-bulkwalk)
-[(clj-lib.snmp.core) run-snmp-bulkwalk](#run-snmp-bulkwalk)
+- [(clj-lib.snmp.core) snmpget-v2c](#snmpget-v2c)
+- [(clj-lib.snmp.core) run-snmp-get](#run-snmp-bulkwalk)
+- [(clj-lib.snmp.core) run-snmp-bulkwalk](#run-snmp-bulkwalk)
 
 ## snmpget-v2c
 
