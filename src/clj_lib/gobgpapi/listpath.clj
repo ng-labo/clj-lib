@@ -23,7 +23,8 @@
                      Attribute$IPAddressPrefix
                      Attribute$LabeledIPAddressPrefix
                      Attribute$AsSegment
-                     Attribute$AsPathAttribute ])
+                     Attribute$AsPathAttribute
+                     Attribute$AggregatorAttribute ])
 )
 
 (defn- build-family 
@@ -78,6 +79,11 @@
     :nlris     (dissect-Nlris (.getNlrisList attr))
   })
 
+(defn- tr-aggregator
+  [attr]
+  (let [o (.unpack attr Attribute$AggregatorAttribute)]
+    { :As (.getAs o) :Address (.getAddress o) }))
+
 (defn- tr-communities
   "refers on known communities table, or forms XXX:YYY with decimal"
   [attr] ; yet unpacked
@@ -127,7 +133,8 @@
                            (.is a Attribute$LocalPrefAttribute)
                            {:LocalPref (.getLocalPref (.unpack a Attribute$LocalPrefAttribute))}
                            ; AtomicAggregateAttribute
-                           ; AggregatorAttribute
+                           (.is a Attribute$AggregatorAttribute)
+                           {:Aggregator (tr-aggregator a)}
                            (.is a Attribute$CommunitiesAttribute)
                            {:Communities (tr-communities a)}
                            ; OriginatorIdAttribute
