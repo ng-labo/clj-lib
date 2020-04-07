@@ -150,30 +150,37 @@
          }
 ) paths))
 
+(def lookup-options
+  { :exact Gobgp$TableLookupOption/LOOKUP_EXACT,
+    :longer Gobgp$TableLookupOption/LOOKUP_LONGER,
+    :shorter Gobgp$TableLookupOption/LOOKUP_SHORTER } )
+
 (defn- build-tablelookupprefix
-  [prefix]
+  [prefix option]
   (.build
     (doto (Gobgp$TableLookupPrefix/newBuilder)
           (.setPrefix prefix)
-          (.setLookupOption Gobgp$TableLookupOption/LOOKUP_SHORTER)
+          (.setLookupOption (get lookup-options option))
           )))
 
 (defn- build-request
-  [table-type ver safi prefix]
+  [table-type ver safi lu-option prefixs]
   (let [builder (Gobgp$ListPathRequest/newBuilder)]
     (doto builder
           (.setFamily (build-family ver safi))
           (.setTableType (gobgpapi/table-type table-type)))
-    (reduce #(.addPrefixes %1 (build-tablelookupprefix %2)) builder prefix)
+    (reduce #(.addPrefixes %1 (build-tablelookupprefix %2 lu-option)) builder prefixs)
     (.build builder)))
   
 (defn list-path
-  [blocking-stub table-type ver safi & lookup-prefix]
+  [blocking-stub table-type ver safi lookup & lookup-prefix]
   {:pre [ (not (not-any? #(= ver %) '(4 6)))
           (not (not-any? #(= safi %) '(:unicast :flowspec)))
           (not (not-any? #(= table-type %) '(:global :local :adj-in :adj-out)))
-          (some? lookup-prefix)]}
-  (let [list-path (.listPath blocking-stub (build-request table-type ver safi lookup-prefix))]
+          (not (and #(= safi :unicast) (not-any? #(= lookup %) '(:exact :shorter :longer))))
+          (not (and #(= safi :unicast) (some? lookup-prefix)))
+          ]}
+  (let [list-path (.listPath blocking-stub (build-request table-type ver safi lookup lookup-prefix))]
     (loop [ ret     []]
       (if (.hasNext list-path)
           (recur (let [dest (.getDestination (.next list-path))]
