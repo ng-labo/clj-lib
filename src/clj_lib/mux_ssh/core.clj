@@ -5,11 +5,22 @@
 )
 
 (def sshcmdtmpl
-  ["/usr/bin/ssh" "-q" "-F/dev/null" "-oPasswordAuthentication=no" "-oKbdInteractiveAuthentication=no" "-oUseRoaming=no" "-oStrictHostKeyChecking=no" "-oConnectTimeout=20" "-oServerAliveCountMax=120" "-oServerAliveInterval=1" "-oControlPath=/tmp/%r@%h:%p" "-oControlMaster=auto" "-oControlPersist=yes"])
+  ["/usr/bin/ssh" "-q" "-F/dev/null"
+   "-oPasswordAuthentication=no"
+   "-oKbdInteractiveAuthentication=no"
+   "-oUseRoaming=no"
+   "-oStrictHostKeyChecking=no"
+   "-oConnectTimeout=10"
+   "-oServerAliveCountMax=120"
+   "-oServerAliveInterval=1"
+   "-oControlPath=/tmp/%r@%h:%p"
+   "-oControlMaster=auto"
+   "-oControlPersist=yes"])
 
-(defn run-cmd-and-get-reader [host args]
-  (assert (type host) java.lang.String)
-  (assert (type args) clojure.lang.PersistentVector)
+(defn- fork-cmd [host args]
+  {:pre [ (= (type host) java.lang.String)
+          (not-any? #(= (type args) %)
+                    '(clojure.lang.PersistentList clojure.lang.PersistentVector))] }
   ; TODO check each element...
 
   (let [ cmd    (concat sshcmdtmpl ["-p" "22"] [host] args)
@@ -29,34 +40,35 @@
   (.write *out* (str (clojure.string/join " " more) "\n"))
   (.flush *out*))
 
-(defn read-lines [ get-reader-arg func-process-line ]
-  (let [ proc   (first get-reader-arg)
-         reader (second get-reader-arg)]
-    (loop []
-      (let [line (.readLine reader)]
-        (when (some? line)
-          (func-process-line line)
-          (recur))))
-    (.waitFor proc)
-    (.exitValue proc)))
+(defn run-cmd [ host cmd-args func-process-line ]
+  (let [proc-reader (fork-cmd host cmd-args)]
+    (let [ proc   (first proc-reader)
+           reader (second proc-reader)]
+      (loop []
+        (let [line (.readLine reader)]
+          (when (some? line)
+            (func-process-line line)
+            (recur))))
+      (.waitFor proc)
+      (.exitValue proc))))
 
-(defn start-thread [ thread-body ]
-  (.start (Thread. thread-body)))
+;(defn start-thread [ thread-body ]
+;  (.start (Thread. thread-body)))
 
-(defn read-lines-th [ get-reader-arg func-process-line ]
-  (let [proc (first get-reader-arg)
-        reader (second get-reader-arg)
-        signal-q (atom false)]
-    (start-thread
-      (fn []
-        (loop []
-          (let [line (.readLine reader) ]
-            (when (and (some? line) (some? @signal-q))
-              (func-process-line line)
-              (recur))))
-        (.close reader)
-        (.waitFor proc)
-        (.exitValue proc)
-      )
-    )signal-q))
+(defn run-cmd-th [ host cmd-args func-process-line ]
+  (let [proc-reader (fork-cmd host cmd-args)]
+    (let [ proc   (first proc-reader)
+           reader (second proc-reader)
+           signal (atom true)]
+      (.start (Thread.
+        (fn []
+          (loop []
+            (let [line (.readLine reader) ]
+              (when (and (some? line) @signal)
+                (func-process-line line)
+                (recur))))
+          (.close reader)
+          (.waitFor proc)
+          (.exitValue proc))))
+    signal)))
 
