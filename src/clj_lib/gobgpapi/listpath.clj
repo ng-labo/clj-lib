@@ -24,7 +24,8 @@
                      Attribute$LabeledIPAddressPrefix
                      Attribute$AsSegment
                      Attribute$AsPathAttribute
-                     Attribute$AggregatorAttribute ])
+                     Attribute$AggregatorAttribute
+                     Attribute$AtomicAggregateAttribute ])
 )
 
 (defn- build-family 
@@ -132,7 +133,8 @@
                            {:MED (.getMed (.unpack a Attribute$MultiExitDiscAttribute))}
                            (.is a Attribute$LocalPrefAttribute)
                            {:LocalPref (.getLocalPref (.unpack a Attribute$LocalPrefAttribute))}
-                           ; AtomicAggregateAttribute
+                           (.is a Attribute$AtomicAggregateAttribute)
+                           {:AtomicAggregate nil}
                            (.is a Attribute$AggregatorAttribute)
                            {:Aggregator (tr-aggregator a)}
                            (.is a Attribute$CommunitiesAttribute)
