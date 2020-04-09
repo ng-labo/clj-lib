@@ -39,6 +39,13 @@
           (.setSafi (cond (= safi :flowspec) Gobgp$Family$Safi/SAFI_FLOW_SPEC_UNICAST
                           (= safi :unicast)  Gobgp$Family$Safi/SAFI_UNICAST)))))
 
+(defn- tr-origin
+  [attr]
+ (get (reduce into {}
+        (map (fn[e]{(second e)(first e)})
+             (filter #(not= (type (first %)) java.lang.Long) gobgpapi/attr-origin)))
+      (.getOrigin (.unpack attr Attribute$OriginAttribute)))) 
+
 (defn- tr-aspath
   [attr] ; yet unpacked
   (map (fn [as-seg]
@@ -124,7 +131,7 @@
                      (assert (= (type a) com.google.protobuf.Any))
                      (cond 
                            (.is a Attribute$OriginAttribute)
-                           {:Origin (.getOrigin (.unpack a Attribute$OriginAttribute))}
+                           {:Origin (tr-origin a)}
                            (.is a Attribute$AsPathAttribute)
                            {:AsPath (tr-aspath a)}
                            (.is a Attribute$NextHopAttribute)

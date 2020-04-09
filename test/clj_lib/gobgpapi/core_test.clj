@@ -59,7 +59,7 @@
           (is (= "1.2.3.0/24" prefix))
 
           (let [path (get (first paths) :path)]
-            (is (= 0 (get path :Origin)))
+            (is (= :igp (get path :Origin)))
             (is (= 100 (get path :MED)))
             (is (= 200 (get path :LocalPref)))
             (is (= "1.2.1.2" (get path :NextHop)))
@@ -91,7 +91,7 @@
           (is (.contains prefix "1.2.3.4/32")) ; format is complex
 
           (let [path (get (first paths) :path)]
-            (is (= 1 (get path :Origin))))
+            (is (= :egp (get path :Origin))))
       ))
 
       (is (some? (clj-lib.gobgpapi.flowspec/delete-flowspec flowspec-ipv4-args gcli)))
