@@ -27,7 +27,7 @@ clj-lib.core=> (pprint (list-path gcli :global 4 :unicast :shorter "103.105.48.6
 [{:prefix "103.105.48.0/24",
   :paths
   ({:path
-    {:Origin 0,
+    {:Origin :igp,
      :AsPath ([64515 65534 20473 2914 62240 136620]),
      :NextHop "169.254.169.254",
      :LocalPref 100,
@@ -37,7 +37,7 @@ clj-lib.core=> (pprint (list-path gcli :global 4 :unicast :shorter "103.105.48.6
     :age 1585969129,
     :source_asn 64939}
    {:path
-    {:Origin 0,
+    {:Origin :igp,
      :AsPath ([64515 65534 20473 2914 62240 136620]),
      :NextHop "169.254.169.254",
      :LocalPref 100,
@@ -49,7 +49,7 @@ clj-lib.core=> (pprint (list-path gcli :global 4 :unicast :shorter "103.105.48.6
  {:prefix "0.0.0.0/0",
   :paths
   ({:path
-    {:Origin 0,
+    {:Origin :igp,
      :AsPath ([64515]),
      :NextHop "169.254.169.254",
      :LocalPref 100},
@@ -57,7 +57,7 @@ clj-lib.core=> (pprint (list-path gcli :global 4 :unicast :shorter "103.105.48.6
     :age 1585969120,
     :source_asn 64939}
    {:path
-    {:Origin 0,
+    {:Origin :igp,
      :AsPath ([64515]),
      :NextHop "169.254.169.254",
      :LocalPref 100},
@@ -97,7 +97,7 @@ clj-lib.core=> (pprint (list-path gcli :global 6 :unicast :shorter "2001:db8:caf
 [{:prefix "2001:db8:cafe::/64",
   :paths
   ({:path
-    {:Origin 1,
+    {:Origin :egp,
      :Communities (":BLACKHOLE" "65432:999"),
      :MED 100,
      :LocalPref 200,
