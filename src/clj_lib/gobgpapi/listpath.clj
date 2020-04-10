@@ -49,7 +49,7 @@
 (defn- tr-aspath
   [attr] ; yet unpacked
   (map (fn [as-seg]
-         (.getNumbersList as-seg))
+         (map #(bit-and % 0xffffffff) (.getNumbersList as-seg)))
     (.getSegmentsList (.unpack attr Attribute$AsPathAttribute))))
 
 (defn- tr-ipaddressprefix
