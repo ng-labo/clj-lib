@@ -1,5 +1,7 @@
 (ns refer-asn.core
   (:require [clojure.string :as str])
+  (:require [clj-time.coerce :as tmc])
+  (:require [clj-time.local :as local-tm])
   (:use [clj-lib.gobgpapi.listpath])
   (:import [java.io BufferedReader FileReader FileWriter])
 )
@@ -12,10 +14,13 @@
 
 (def test-file-sample "./IP2LOCATION-LITE-DB1.CSV")
 
+; thread number for lookup-cc, get-all-prefixs
+(def thread-num 4)
+
 (defn- inet4-aton [a]
   (reduce #(+ (bit-shift-left %1 8) %2)
           (map #(Integer/parseInt %)
-               (clojure.string/split a #"\.")))
+               (str/split a #"\.")))
 )
 
 (defn- inet4-ntoa [n]
@@ -57,19 +62,18 @@
 
 (defn- get-prefixlen
   [prefix]
-  (Integer/parseInt (last (clojure.string/split prefix #"/"))))
+  (Integer/parseInt (last (str/split prefix #"/"))))
 
 (defn- chop-prefixlen
   [prefix]
-  (first (clojure.string/split prefix #"/")))
+  (first (str/split prefix #"/")))
 
 (defn find-cc
   [idx-cc prefix]
-  (let [octet-key (Integer/parseInt (first (clojure.string/split prefix #"\.")))
+  (let [octet-key (Integer/parseInt (first (str/split prefix #"\.")))
         ip-val (inet4-aton (chop-prefixlen prefix))]
     ;(println "..." prefix)
     (let [idx (get idx-cc octet-key)]
-      (assert (some? idx))
       (loop [rec idx]
         (if (first rec)
             (if (and (<= (nth (first rec) 0) ip-val)(<= ip-val (nth (first rec) 1)))
@@ -77,13 +81,22 @@
                 (recur (next rec)))
             nil)))))
 
+(defn- partitionize
+  [whole-list part-num]
+  (let [c (count whole-list)]
+    (let [list-sz (if (zero? (mod c part-num)) (/ c part-num) (inc (int (/ c part-num))))]
+      (partition list-sz list-sz nil whole-list))))
+
 (defn lookup-cc
   [idx-cc ipasn-list]
-  (map (fn [a]
-         (let [prefix (first (keys a))
-               asn    (first (vals a))]
-           [(get-prefixlen prefix) prefix asn (find-cc idx-cc prefix)]))
-       ipasn-list))
+  (reduce into []
+    (pmap (fn [part-ipasn-list]
+            (map (fn [a]
+                   (let [prefix (first (keys a))
+                         asn    (first (vals a))]
+                     [(get-prefixlen prefix) prefix asn (find-cc idx-cc prefix)]))
+                 part-ipasn-list))
+          (partitionize ipasn-list thread-num))))
   
 (defn process-a-block
   [listpath-result]
@@ -99,9 +112,12 @@
 
 (defn get-all-prefixs
   [blocking-stub]
-  (def all-blocks (map #(apply str (concat [ (str %) ".0.0.0/8"]))(range 1 256)))
-
-  (reduce into [] (map #(process-a-block (call-listpath blocking-stub %)) all-blocks)))
+  (let [partitioned-blocks (partitionize (map #(apply str (concat [(str %) ".0.0.0/8"])) (range 1 256)) thread-num)]
+    (reduce into []
+      (pmap (fn [blocks]
+              (reduce into [] (map #(process-a-block (call-listpath blocking-stub %))
+                                   blocks)))
+       partitioned-blocks))))
 
 (defn write-list-data
   ; sort records by prefix and write to output-file
@@ -118,3 +134,21 @@
              writer
              (sort #(compare (nth %1 0)(get %2 0)) records))
       (.close writer)))
+
+(defn- nowepoch
+  []
+  (tmc/to-long (local-tm/local-now)))
+
+(defn batch
+  [blocking-stub ip-cc-file output-csv]
+  (let [start-time (nowepoch)
+        cc-index   (create-index ip-cc-file)]
+    (println "create-index " (- (nowepoch) start-time))
+    (let [start-time  (nowepoch)
+          all-prefixs (get-all-prefixs blocking-stub)]
+      (println "get-all-prefixes " (- (nowepoch) start-time))
+      (let [start-time (nowepoch)
+            ip-asn-cc  (lookup-cc cc-index all-prefixs)]
+        (println "count ip-asn-cc" (count ip-asn-cc))
+        (println "lookup-cc " (- (nowepoch) start-time))
+        (time (write-list-data ip-asn-cc output-csv))))))
