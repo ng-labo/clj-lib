@@ -20,8 +20,7 @@
 (defn- inet4-aton [a]
   (reduce #(+ (bit-shift-left %1 8) %2)
           (map #(Integer/parseInt %)
-               (str/split a #"\.")))
-)
+               (str/split a #"\."))))
 
 (defn- inet4-ntoa [n]
   (apply str
@@ -37,15 +36,29 @@
          ans-prefixlen 33]
     (if (zero? range) ans-prefixlen (recur (int (/ range 2))(dec ans-prefixlen)))))
 
-(defn- first-octet
-  [line]
+(defn- octet-value
+  ; `line` is expected following
+  ; "nnnnnnnnnn","nnnnnnnnnn","XX","...."
+  ; 1st and 2nd column means integer as IP values
+  ; return first 8bit integer in one of them
+  [line item-index]
   (let [items (map #(str/replace % "\"" "") (str/split line #","))]
-    (bit-shift-right (Long/parseLong (nth items 0))24)))
+    (bit-shift-right (Long/parseLong (nth items item-index))24)))
 
 (defn- range-data
   [line]
   (let [items (map #(str/replace % "\"" "") (str/split line #","))]
     (list (Long/parseLong (nth items 0)) (Long/parseLong (nth items 1)) (nth items 2))))
+
+(defn set-range-data
+  [line src]
+  (let [i1 (octet-value line 0)
+        i2 (octet-value line 1)]
+    (loop [o (range i1 (inc i2)) ret src]
+      (if (first o)
+          (recur (next o)
+                 (assoc ret (first o) (conj (get ret (first o)) (range-data line))))
+          ret))))
 
 (defn create-index ;-from-ip2location-lite-db1
   [file-name]
@@ -54,8 +67,7 @@
       (let [line (.readLine reader)]
         (if (nil? line)
             ret
-            (recur (assoc ret (first-octet line)
-                              (conj (get ret (first-octet line)) (range-data line)))) )))]
+            (recur (set-range-data line ret)))))]
     (.close reader)
     ret
 )))
