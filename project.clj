@@ -17,11 +17,11 @@
                  [org.slf4j/log4j-over-slf4j "1.7.30"] ; Log4j to SLF4J    
                  [javax.annotation/javax.annotation-api "1.3.2"]
                  [com.google.protobuf/protobuf-java "3.11.4"]
-                 [io.grpc/grpc-api "1.28.0"]
-                 [io.grpc/grpc-core "1.28.0" :exclusions [io.grpc/grpc-api]]
-                 [io.grpc/grpc-netty-shaded "1.28.0" :exclusions [io.grpc/grpc-api io.grpc/grpc-core]]
-                 [io.grpc/grpc-protobuf "1.28.0"]
-                 [io.grpc/grpc-stub "1.28.0"]
+                 [io.grpc/grpc-api "1.28.1"]
+                 [io.grpc/grpc-core "1.28.1" :exclusions [io.grpc/grpc-api]]
+                 [io.grpc/grpc-netty-shaded "1.28.1" :exclusions [io.grpc/grpc-api io.grpc/grpc-core]]
+                 [io.grpc/grpc-protobuf "1.28.1"]
+                 [io.grpc/grpc-stub "1.28.1"]
                  [org.snmp4j/snmp4j "3.4.0"]]
 
 
