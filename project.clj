@@ -34,7 +34,7 @@
   ; for lein-protoc
   :protoc-version "3.11.4"
   :proto-source-paths ["ext/proto"]
-  :protoc-grpc {:version "1.28.0"}
+  :protoc-grpc {:version "1.28.1"}
   :proto-target-path "target/generated-sources/protobuf"
   :java-source-pathes ["target/generated-sources/protobuf"]
 
