@@ -193,8 +193,8 @@
   {:pre [ (not (not-any? #(= ver %) '(4 6)))
           (not (not-any? #(= safi %) '(:unicast :flowspec)))
           (not (not-any? #(= table-type %) '(:global :local :adj-in :adj-out)))
-          (cond (= safi :unicast)
-                (and (some? lookup-prefix) (not (not-any? #(= lookup %) '(:exact :shorter :longer))))
+          (cond (and (= safi :unicast) (some? lookup-prefix))
+                (not (not-any? #(= lookup %) '(:exact :shorter :longer)))
                 :else true)
           ]}
   (let [list-path (.listPath blocking-stub (build-request table-type ver safi lookup lookup-prefix))]
