@@ -36,12 +36,12 @@
   [blocking-stub ip-cc-file output-csv]
   (let [start-time (nowepoch)
         cc-index   (create-index-ipv6 ip-cc-file)]
-    (println "create-index " (- (nowepoch) start-time))
+    (println "create-index " (- (nowepoch) start-time) "msec")
     (let [start-time  (nowepoch)
           all-prefixs (get-all-prefixs-ipv6 blocking-stub)]
-      (println "get-all-prefixes " (- (nowepoch) start-time))
+      (println "get-all-prefixes " (- (nowepoch) start-time) "msec")
       (let [start-time (nowepoch)
             ip-asn-cc  (lookup-cc-ipv6 cc-index all-prefixs)]
         (println "count ip-asn-cc" (count ip-asn-cc))
-        (println "lookup-cc " (- (nowepoch) start-time))
+        (println "lookup-cc " (- (nowepoch) start-time) "msec")
         (time (write-list-data-ipv6 ip-asn-cc output-csv))))))

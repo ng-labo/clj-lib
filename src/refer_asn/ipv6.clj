@@ -126,7 +126,7 @@
 
 (defn- call-listpath
   [blocking-stub prefix]
-  (clj-lib.gobgpapi.listpath/list-path blocking-stub :global 6 :unicast :longer prefix))
+  (clj-lib.gobgpapi.listpath/list-path blocking-stub :global 6 :unicast nil))
 
 (defn get-all-prefixs-ipv6
   [blocking-stub]
